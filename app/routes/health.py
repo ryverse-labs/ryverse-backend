@@ -1,7 +1,9 @@
 from fastapi import APIRouter
+from app.db.mongo import db
 
 router = APIRouter()
 
 @router.get("/")
-def root():
-    return {"message": "RyVerse backend is live 🚀"}
+async def root():
+    await db.test.insert_one({"status": "working"})
+    return {"message": "MongoDB connected 🚀"}
