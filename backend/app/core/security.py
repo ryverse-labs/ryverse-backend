@@ -1,49 +1,43 @@
 """
-Security helpers: password hashing and JWT handling.
+Security utilities using Argon2 (modern password hashing).
 """
 
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
+from jose import jwt
 from datetime import datetime, timedelta
-from jose import jwt, JWTError
-from passlib.context import CryptContext
 from app.core.config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Initialize Argon2 password hasher
+ph = PasswordHasher()
 
-
-# def hash_password(password: str) -> str:
-#     """Hash a plain password."""
-#     return pwd_context.hash(password)
 
 def hash_password(password: str) -> str:
     """
-    Hash a password using bcrypt.
-
-    bcrypt has a strict limit of 72 bytes.
-    We enforce validation instead of silent truncation.
+    Hash password using Argon2.
+    No strict length limits like bcrypt.
     """
+    return ph.hash(password)
 
-    if len(password.encode("utf-8")) > 72:
-        raise ValueError("Password too long (max 72 bytes allowed)")
-
-    return pwd_context.hash(password)
 
 def verify_password(password: str, hashed: str) -> bool:
-    """Verify password against hash."""
-    return pwd_context.verify(password, hashed)
+    """
+    Verify password against stored hash.
+    """
+    try:
+        ph.verify(hashed, password)
+        return True
+    except VerifyMismatchError:
+        return False
 
 
-def create_access_token(payload: dict) -> str:
-    """Create signed JWT with expiry."""
-    data = payload.copy()
-    data["exp"] = datetime.utcnow() + timedelta(
+def create_access_token(data: dict) -> str:
+    """
+    Generate JWT token.
+    """
+    payload = data.copy()
+    payload["exp"] = datetime.utcnow() + timedelta(
         minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
-    return jwt.encode(data, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
-
-def decode_token(token: str) -> dict:
-    """Decode JWT and return payload."""
-    try:
-        return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-    except JWTError:
-        return {}
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)

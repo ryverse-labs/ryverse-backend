@@ -2,8 +2,8 @@ fastapi
 uvicorn
 motor
 pymongo
-passlib[bcrypt]
 python-jose
 python-dotenv
 pydantic
 email-validator
+argon2-cffi
